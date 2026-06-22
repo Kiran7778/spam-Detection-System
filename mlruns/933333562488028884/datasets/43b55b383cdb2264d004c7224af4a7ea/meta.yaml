@@ -1,0 +1,8 @@
+digest: 7cf618e0
+name: SMS_Spam_Train
+profile: '{"num_rows": 3616, "num_elements": 10848}'
+schema: '{"mlflow_colspec": [{"type": "string", "name": "text_clean", "required":
+  true}, {"type": "long", "name": "label", "required": true}, {"type": "string", "name":
+  "text", "required": true}]}'
+source: '{"uri": "C:/Users/WIN 10/Downloads/spam-example-pipeline-main/spam-example-pipeline-main/data/processed/train.csv"}'
+source_type: local

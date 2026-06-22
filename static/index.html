@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Adaptive Shield - Real-time SMS Spam Moderation Dashboard with Active Learning and Human-in-the-Loop review system.">
+    <title>Adaptive Shield — SMS Moderation Dashboard</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Dashboard CSS -->
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <!-- Toast Notification Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <div class="app-container">
+        <!-- ═══ Sidebar Navigation ═══ -->
+        <aside class="sidebar">
+            <div class="logo-area">
+                <div class="logo-icon"><i class="fa-solid fa-shield-halved"></i></div>
+                <div class="logo-text">
+                    <h2>Adaptive Shield</h2>
+                    <span>SMS Moderation Hub</span>
+                </div>
+            </div>
+            <nav class="nav-menu">
+                <button class="nav-item active" data-tab="sandbox" id="nav-sandbox">
+                    <i class="fa-solid fa-terminal"></i>
+                    <span>Moderation Sandbox</span>
+                </button>
+                <button class="nav-item" data-tab="review" id="nav-review">
+                    <i class="fa-solid fa-user-check"></i>
+                    <span>Human Review Queue</span>
+                    <span class="badge badge-amber" id="queue-count-badge">0</span>
+                </button>
+                <button class="nav-item" data-tab="analytics" id="nav-analytics">
+                    <i class="fa-solid fa-chart-line"></i>
+                    <span>Analytics &amp; Insights</span>
+                </button>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="status-indicator">
+                    <span class="status-dot offline" id="status-dot"></span>
+                    <span class="status-text" id="backend-status">Connecting...</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- ═══ Main Content Area ═══ -->
+        <main class="main-content">
+            <!-- Topbar Header -->
+            <header class="topbar">
+                <div class="welcome-msg">
+                    <h1>SMS Spam Moderation Center</h1>
+                    <p>Real-time spam filtering with Active Learning loops</p>
+                </div>
+                <div class="system-stats">
+                    <div class="mini-stat">
+                        <span class="label">Inference Mode</span>
+                        <span class="val text-accent" id="inference-mode-val">—</span>
+                    </div>
+                    <div class="mini-stat">
+                        <span class="label">Mode</span>
+                        <span class="val text-amber" id="aws-mode-val">—</span>
+                    </div>
+                    <div class="mini-stat">
+                        <span class="label">Total Dataset</span>
+                        <span class="val text-green" id="total-dataset-val">—</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- ════════════════════════════════════════ -->
+            <!--         TAB 1: MODERATION SANDBOX       -->
+            <!-- ════════════════════════════════════════ -->
+            <section id="tab-sandbox" class="tab-content active">
+                <div class="grid-layout">
+                    <!-- Left: Sandbox Input Form -->
+                    <div class="card card-input">
+                        <div class="card-header">
+                            <h3><i class="fa-solid fa-pen-nib"></i> Analyze Content</h3>
+                            <p>Enter any SMS or message to evaluate it against the active classifier</p>
+                        </div>
+                        <div class="card-body">
+                            <form id="sandbox-form">
+                                <div class="form-group">
+                                    <textarea id="message-input" placeholder="Type or paste your message here... E.g., 'Free entry to win a prize! Text WIN to 80888'" required></textarea>
+                                </div>
+                                <div class="form-group-row">
+                                    <div class="form-group">
+                                        <label for="username-input">Metadata: Username (Optional)</label>
+                                        <input type="text" id="username-input" value="anonymous" placeholder="Enter username">
+                                    </div>
+                                    <button type="submit" class="btn btn-primary" id="btn-moderate">
+                                        <span>Classify Message</span>
+                                        <i class="fa-solid fa-arrow-right"></i>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="card-footer-presets">
+                            <span class="preset-label">Quick Presets:</span>
+                            <div class="preset-tags">
+                                <button class="preset-tag" data-text="Hey, are we still meeting for lunch tomorrow?">Safe Example</button>
+                                <button class="preset-tag" data-text="WINNER! You have been selected for a free iPhone! Call NOW to claim.">Spam Example</button>
+                                <button class="preset-tag" data-text="Your package is waiting. Pls call 09050000 to confirm shipping.">Low Confidence Example</button>
+                                <button class="preset-tag" data-text="Can you pick up milk on your way home?">Short Safe Msg</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Prediction Results -->
+                    <div class="card card-result" id="sandbox-result-card">
+                        <div class="card-header">
+                            <h3><i class="fa-solid fa-square-poll-vertical"></i> Classification Result</h3>
+                            <p>Detailed outputs from the underlying model</p>
+                        </div>
+                        <div class="card-body result-placeholder" id="result-placeholder">
+                            <i class="fa-solid fa-envelope-open-text placeholder-icon"></i>
+                            <p>Submit a message to view moderation breakdown</p>
+                        </div>
+                        <div class="card-body result-view hidden" id="result-view">
+                            <div class="result-badge-container" style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                                <div class="result-badge" id="label-badge">SAFE</div>
+                                <span class="text-secondary" style="font-size: 13px; font-weight: 500; margin-top: 8px;" id="label-desc">Submit a message to run moderation check.</span>
+                            </div>
+                            <div class="metrics-grid">
+                                <div class="metric-box">
+                                    <span class="metric-label">Confidence</span>
+                                    <div class="progress-container">
+                                        <div class="progress-bar" id="confidence-bar"></div>
+                                    </div>
+                                    <span class="metric-val" id="confidence-val">99.8%</span>
+                                </div>
+                                <div class="metric-box">
+                                    <span class="metric-label">Inference Time</span>
+                                    <span class="metric-val" id="elapsed-val">0.24 ms</span>
+                                </div>
+                            </div>
+                            <div class="review-status-alert hidden" id="flagged-alert">
+                                <div class="alert-icon"><i class="fa-solid fa-circle-exclamation animate-pulse"></i></div>
+                                <div class="alert-text">
+                                    <h4>Flagged for Human Review</h4>
+                                    <p>Model confidence is below the threshold (<span id="threshold-val">0.85</span>). This item has been buffered to the review queue.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ════════════════════════════════════════ -->
+            <!--       TAB 2: HUMAN REVIEW QUEUE         -->
+            <!-- ════════════════════════════════════════ -->
+            <section id="tab-review" class="tab-content">
+                <div class="section-header">
+                    <h2><i class="fa-solid fa-user-gear"></i> Human-in-the-Loop Moderation</h2>
+                    <p>Correct predictions and label uncertain samples to refine the Active Learning model.</p>
+                </div>
+                <div class="card review-card">
+                    <div class="card-header review-header-stats">
+                        <div class="stats-row">
+                            <div class="mini-stat">
+                                <span class="label">Pending Review</span>
+                                <span class="val text-amber" id="queue-pending-count">0</span>
+                            </div>
+                            <div class="mini-stat">
+                                <span class="label">Min. Certainty Threshold</span>
+                                <span class="val text-accent" id="stats-threshold-val">0.85</span>
+                            </div>
+                        </div>
+                        <button class="btn btn-secondary" id="btn-refresh-queue">
+                            <i class="fa-solid fa-arrows-rotate"></i> Refresh Queue
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="review-table-container">
+                            <table class="review-table">
+                                <thead>
+                                    <tr>
+                                        <th>Timestamp</th>
+                                        <th>Message Content</th>
+                                        <th style="width: 150px;">Prediction (Confidence)</th>
+                                        <th style="width: 250px; text-align: center;">Verify / Correct Decision</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="review-queue-tbody">
+                                    <tr class="table-placeholder">
+                                        <td colspan="4" class="text-center">
+                                            <i class="fa-solid fa-clipboard-check table-placeholder-icon"></i>
+                                            <p>No items pending human review. Excellent job!</p>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ════════════════════════════════════════ -->
+            <!--      TAB 3: ANALYTICS & INSIGHTS        -->
+            <!-- ════════════════════════════════════════ -->
+            <section id="tab-analytics" class="tab-content">
+                <div class="section-header">
+                    <h2><i class="fa-solid fa-chart-pie"></i> Model Analytics &amp; Performance</h2>
+                    <p>Detailed visualization of data distributions, evaluation metrics, and active learning curves.</p>
+                </div>
+                <!-- Data Splits Cards -->
+                <div class="grid-three-col">
+                    <div class="card stats-card accent-card">
+                        <div class="card-body">
+                            <div class="icon"><i class="fa-solid fa-database"></i></div>
+                            <div class="details">
+                                <span class="label">Training Set Size</span>
+                                <h3 id="train-size-val">—</h3>
+                                <span class="subtext">70% split</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card stats-card">
+                        <div class="card-body">
+                            <div class="icon"><i class="fa-solid fa-vial-circle-check"></i></div>
+                            <div class="details">
+                                <span class="label">Validation Set Size</span>
+                                <h3 id="val-size-val">—</h3>
+                                <span class="subtext">15% split</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card stats-card">
+                        <div class="card-body">
+                            <div class="icon"><i class="fa-solid fa-list-check"></i></div>
+                            <div class="details">
+                                <span class="label">Test Set Size</span>
+                                <h3 id="test-size-val">—</h3>
+                                <span class="subtext">15% split</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Plot Image Grid -->
+                <div class="analytics-plots-grid">
+                    <!-- Plot 1: Active Learning Comparison -->
+                    <div class="card plot-card">
+                        <div class="card-header">
+                            <h3><i class="fa-solid fa-chart-line"></i> Active Learning Curve</h3>
+                            <p>F1 Score progression: Active Learning vs Random Sampling</p>
+                        </div>
+                        <div class="card-body">
+                            <div class="plot-img-container">
+                                <img src="/plots/active_learning_comparison.png" alt="Active Learning Curve" onerror="this.src='https://placehold.co/600x400/10131a/3b82f6?text=Active+Learning+Plot'">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Plot 2: EDA Overview -->
+                    <div class="card plot-card">
+                        <div class="card-header">
+                            <h3><i class="fa-solid fa-chart-bar"></i> Exploratory Data Analysis</h3>
+                            <p>Distribution of message lengths and class counts</p>
+                        </div>
+                        <div class="card-body">
+                            <div class="plot-img-container">
+                                <img src="/plots/eda_overview.png" alt="Exploratory Data Analysis" onerror="this.src='https://placehold.co/600x400/10131a/10b981?text=EDA+Overview+Plot'">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Plot 3: Evaluation Metrics -->
+                    <div class="card plot-card">
+                        <div class="card-header">
+                            <h3><i class="fa-solid fa-circle-nodes"></i> Model Evaluation Results</h3>
+                            <p>Confusion matrix and model performance metrics</p>
+                        </div>
+                        <div class="card-body">
+                            <div class="plot-img-container">
+                                <img src="/plots/evaluation.png" alt="Model Evaluation Metrics" onerror="this.src='https://placehold.co/600x400/10131a/f59e0b?text=Evaluation+Metrics+Plot'">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════ -->
+    <!--           INLINE JAVASCRIPT                     -->
+    <!-- ═══════════════════════════════════════════════ -->
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // ─── State ───────────────────────────────────
+        let statsData = null;
+        let backendOnline = false;
+
+        // ─── DOM Elements ────────────────────────────
+        const navItems = document.querySelectorAll('.nav-item');
+        const tabs = document.querySelectorAll('.tab-content');
+        const statusDot = document.getElementById('status-dot');
+        const backendStatus = document.getElementById('backend-status');
+
+        // Header stats
+        const inferenceModeVal = document.getElementById('inference-mode-val');
+        const awsModeVal = document.getElementById('aws-mode-val');
+        const totalDatasetVal = document.getElementById('total-dataset-val');
+        const queueCountBadge = document.getElementById('queue-count-badge');
+        const queuePendingCount = document.getElementById('queue-pending-count');
+        const statsThresholdVal = document.getElementById('stats-threshold-val');
+
+        // Sandbox
+        const sandboxForm = document.getElementById('sandbox-form');
+        const messageInput = document.getElementById('message-input');
+        const usernameInput = document.getElementById('username-input');
+        const btnModerate = document.getElementById('btn-moderate');
+        const resultPlaceholder = document.getElementById('result-placeholder');
+        const resultView = document.getElementById('result-view');
+        const labelBadge = document.getElementById('label-badge');
+        const confidenceBar = document.getElementById('confidence-bar');
+        const confidenceVal = document.getElementById('confidence-val');
+        const elapsedVal = document.getElementById('elapsed-val');
+        const flaggedAlert = document.getElementById('flagged-alert');
+        const thresholdVal = document.getElementById('threshold-val');
+        const presetTags = document.querySelectorAll('.preset-tag');
+
+        // Review
+        const btnRefreshQueue = document.getElementById('btn-refresh-queue');
+        const reviewQueueTbody = document.getElementById('review-queue-tbody');
+
+        // Analytics
+        const trainSizeVal = document.getElementById('train-size-val');
+        const valSizeVal = document.getElementById('val-size-val');
+        const testSizeVal = document.getElementById('test-size-val');
+
+
+        // ═══════════════════════════════════════════════
+        //  TOAST NOTIFICATION SYSTEM
+        // ═══════════════════════════════════════════════
+
+        function showToast(type, title, message, duration = 4000) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+
+            const iconMap = {
+                success: 'fa-solid fa-circle-check',
+                error: 'fa-solid fa-circle-xmark',
+                info: 'fa-solid fa-circle-info'
+            };
+
+            toast.innerHTML = `
+                <div class="toast-icon"><i class="${iconMap[type] || iconMap.info}"></i></div>
+                <div class="toast-body">
+                    <div class="toast-title">${title}</div>
+                    <div class="toast-message">${message}</div>
+                </div>
+            `;
+
+            container.appendChild(toast);
+
+            // Click to dismiss
+            toast.addEventListener('click', () => dismissToast(toast));
+
+            // Auto-dismiss
+            setTimeout(() => dismissToast(toast), duration);
+        }
+
+        function dismissToast(toast) {
+            if (toast.classList.contains('toast-exit')) return;
+            toast.classList.add('toast-exit');
+            setTimeout(() => toast.remove(), 300);
+        }
+
+
+        // ═══════════════════════════════════════════════
+        //  TAB NAVIGATION
+        // ═══════════════════════════════════════════════
+
+        navItems.forEach(item => {
+            item.addEventListener('click', () => {
+                const targetTab = item.getAttribute('data-tab');
+
+                navItems.forEach(nav => nav.classList.remove('active'));
+                item.classList.add('active');
+
+                tabs.forEach(tab => {
+                    tab.classList.toggle('active', tab.id === `tab-${targetTab}`);
+                });
+
+                // Load data for specific tabs
+                if (targetTab === 'review') {
+                    loadReviewQueue();
+                } else if (targetTab === 'analytics') {
+                    loadStats();
+                }
+            });
+        });
+
+
+        // ═══════════════════════════════════════════════
+        //  PRESET TAGS
+        // ═══════════════════════════════════════════════
+
+        presetTags.forEach(tag => {
+            tag.addEventListener('click', () => {
+                messageInput.value = tag.getAttribute('data-text');
+                messageInput.focus();
+                // Visual feedback
+                tag.style.borderColor = 'rgba(59, 130, 246, 0.5)';
+                tag.style.color = '#edf0f5';
+                setTimeout(() => {
+                    tag.style.borderColor = '';
+                    tag.style.color = '';
+                }, 400);
+            });
+        });
+
+
+        // ═══════════════════════════════════════════════
+        //  BACKEND HEALTH CHECK
+        // ═══════════════════════════════════════════════
+
+        async function checkBackendHealth() {
+            try {
+                const res = await fetch('/health');
+                const data = await res.json();
+
+                if (res.ok && data.status === 'healthy') {
+                    backendOnline = true;
+                    backendStatus.textContent = 'API Server Connected';
+                    statusDot.className = 'status-dot online';
+                    return true;
+                } else {
+                    throw new Error('Unhealthy');
+                }
+            } catch (err) {
+                backendOnline = false;
+                backendStatus.textContent = 'Backend Offline';
+                statusDot.className = 'status-dot offline';
+                return false;
+            }
+        }
+
+
+        // ═══════════════════════════════════════════════
+        //  LOAD STATS
+        // ═══════════════════════════════════════════════
+
+        async function loadStats() {
+            try {
+                const res = await fetch('/api/stats');
+                if (!res.ok) throw new Error('Failed');
+
+                statsData = await res.json();
+
+                inferenceModeVal.textContent = statsData.inference_engine || '—';
+                awsModeVal.textContent = statsData.aws_mode || '—';
+
+                const total = (statsData.dataset.train || 0) + (statsData.dataset.val || 0) + (statsData.dataset.test || 0);
+                totalDatasetVal.textContent = total.toLocaleString();
+
+                queueCountBadge.textContent = statsData.review_queue_pending || 0;
+                queuePendingCount.textContent = statsData.review_queue_pending || 0;
+                statsThresholdVal.textContent = (statsData.confidence_threshold || 0.85).toFixed(2);
+                if (thresholdVal) thresholdVal.textContent = (statsData.confidence_threshold || 0.85).toFixed(2);
+
+                trainSizeVal.textContent = (statsData.dataset.train || 0).toLocaleString() + ' messages';
+                valSizeVal.textContent = (statsData.dataset.val || 0).toLocaleString() + ' messages';
+                testSizeVal.textContent = (statsData.dataset.test || 0).toLocaleString() + ' messages';
+
+            } catch (err) {
+                console.warn('Stats load error:', err);
+            }
+        }
+
+
+        // ═══════════════════════════════════════════════
+        //  SANDBOX — CLASSIFY MESSAGE
+        // ═══════════════════════════════════════════════
+
+        sandboxForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const text = messageInput.value.trim();
+            const username = usernameInput.value.trim() || 'anonymous';
+
+            if (!text) return;
+
+            // Loading state
+            btnModerate.disabled = true;
+            btnModerate.querySelector('span').textContent = 'Analyzing...';
+            btnModerate.querySelector('i').className = 'fa-solid fa-spinner fa-spin';
+
+            try {
+                const res = await fetch('/moderate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: text, username: username })
+                });
+
+                if (!res.ok) {
+                    const errData = await res.json().catch(() => ({}));
+                    throw new Error(errData.detail || 'Classification failed');
+                }
+
+                const data = await res.json();
+                renderSandboxResult(data);
+                showToast('success', 'Classified', `Message identified as ${data.label.toUpperCase()} (${(data.confidence * 100).toFixed(1)}%)`);
+
+                // Refresh stats
+                loadStats();
+
+            } catch (err) {
+                showToast('error', 'Error', err.message);
+            } finally {
+                btnModerate.disabled = false;
+                btnModerate.querySelector('span').textContent = 'Classify Message';
+                btnModerate.querySelector('i').className = 'fa-solid fa-arrow-right';
+            }
+        });
+
+
+        function renderSandboxResult(result) {
+            resultPlaceholder.classList.add('hidden');
+            resultView.classList.remove('hidden');
+
+            // Label badge
+            const isSpam = result.label.toLowerCase() === 'spam';
+            const labelBadge = document.getElementById('label-badge');
+            const labelDesc = document.getElementById('label-desc');
+            
+            if (isSpam) {
+                labelBadge.textContent = 'SPAM / HARMFUL';
+                labelBadge.className = 'result-badge spam';
+                labelDesc.textContent = 'Warning: This message has been identified as spam or harmful.';
+                labelDesc.style.color = 'var(--color-spam)';
+            } else {
+                labelBadge.textContent = 'SAFE';
+                labelBadge.className = 'result-badge ham';
+                labelDesc.textContent = 'This message contains safe and legitimate content.';
+                labelDesc.style.color = 'var(--color-ham)';
+            }
+
+            // Confidence bar
+            const pct = (result.confidence * 100).toFixed(1);
+            confidenceVal.textContent = pct + '%';
+
+            // Animate the confidence bar from 0
+            confidenceBar.style.width = '0%';
+            if (result.label === 'spam') {
+                confidenceBar.style.background = 'var(--color-spam-gradient)';
+            } else {
+                confidenceBar.style.background = 'var(--color-ham-gradient)';
+            }
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    confidenceBar.style.width = pct + '%';
+                });
+            });
+
+            // Elapsed time
+            elapsedVal.textContent = result.elapsed_ms.toFixed(2) + ' ms';
+
+            // Flagged alert
+            if (result.flagged_for_review) {
+                flaggedAlert.classList.remove('hidden');
+            } else {
+                flaggedAlert.classList.add('hidden');
+            }
+        }
+
+
+        // ═══════════════════════════════════════════════
+        //  HUMAN REVIEW QUEUE
+        // ═══════════════════════════════════════════════
+
+        btnRefreshQueue.addEventListener('click', loadReviewQueue);
+
+        async function loadReviewQueue() {
+            // Show loading state
+            reviewQueueTbody.innerHTML = `
+                <tr class="table-placeholder">
+                    <td colspan="4" class="text-center">
+                        <div class="loading-spinner" style="margin: 0 auto 12px;"></div>
+                        <p>Fetching review queue...</p>
+                    </td>
+                </tr>
+            `;
+
+            try {
+                const res = await fetch('/api/review-queue');
+                if (!res.ok) throw new Error('Failed to load review queue');
+
+                const items = await res.json();
+                renderReviewQueue(items);
+                loadStats();
+
+            } catch (err) {
+                console.error(err);
+                reviewQueueTbody.innerHTML = `
+                    <tr class="table-placeholder">
+                        <td colspan="4" class="text-center">
+                            <i class="fa-solid fa-circle-exclamation table-placeholder-icon" style="color: var(--color-spam);"></i>
+                            <p style="color: var(--color-spam);">Error: ${err.message}</p>
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+
+        function renderReviewQueue(items) {
+            if (!items || items.length === 0) {
+                reviewQueueTbody.innerHTML = `
+                    <tr class="table-placeholder">
+                        <td colspan="4" class="text-center">
+                            <i class="fa-solid fa-clipboard-check table-placeholder-icon"></i>
+                            <p>No items pending human review. Excellent job!</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            reviewQueueTbody.innerHTML = '';
+
+            items.forEach((item) => {
+                const dateStr = item.timestamp
+                    ? new Date(item.timestamp * 1000).toLocaleString()
+                    : 'N/A';
+
+                const tr = document.createElement('tr');
+                tr.style.animation = 'fade-in 0.3s ease';
+
+                // Date column
+                const tdDate = document.createElement('td');
+                tdDate.className = 'text-secondary';
+                tdDate.style.fontSize = '12px';
+                tdDate.style.fontFamily = 'var(--font-mono)';
+                tdDate.textContent = dateStr;
+
+                // Message column
+                const tdMsg = document.createElement('td');
+                const msgDiv = document.createElement('div');
+                msgDiv.className = 'review-msg-text';
+                msgDiv.textContent = item.text;
+                tdMsg.appendChild(msgDiv);
+
+                const metaDiv = document.createElement('div');
+                metaDiv.className = 'review-meta';
+                metaDiv.innerHTML = `<span><i class="fa-regular fa-user"></i> ${item.username || 'anonymous'}</span>`;
+                tdMsg.appendChild(metaDiv);
+
+                // Prediction column
+                const tdPred = document.createElement('td');
+                const confPct = ((item.model_confidence || 0) * 100).toFixed(1);
+                const predLabel = (item.model_prediction || 'unknown').toLowerCase();
+                const displayLabel = predLabel === 'ham' ? 'SAFE' : 'SPAM / HARMFUL';
+                tdPred.innerHTML = `
+                    <span class="badge badge-outline ${predLabel}">${displayLabel}</span>
+                    <span class="text-secondary" style="font-size: 11px; margin-left: 4px;">(${confPct}%)</span>
+                `;
+
+                // Action buttons column
+                const tdAction = document.createElement('td');
+                tdAction.style.textAlign = 'center';
+
+                const btnGroup = document.createElement('div');
+                btnGroup.className = 'action-buttons';
+
+                const btnHam = document.createElement('button');
+                btnHam.className = 'btn-action btn-ham-correct';
+                btnHam.innerHTML = '<i class="fa-solid fa-check"></i> Mark Safe';
+                btnHam.addEventListener('click', () => submitReviewCorrection(item, 'ham', tr));
+
+                const btnSpam = document.createElement('button');
+                btnSpam.className = 'btn-action btn-spam-correct';
+                btnSpam.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Mark Spam';
+                btnSpam.addEventListener('click', () => submitReviewCorrection(item, 'spam', tr));
+
+                btnGroup.appendChild(btnHam);
+                btnGroup.appendChild(btnSpam);
+                tdAction.appendChild(btnGroup);
+
+                tr.appendChild(tdDate);
+                tr.appendChild(tdMsg);
+                tr.appendChild(tdPred);
+                tr.appendChild(tdAction);
+
+                reviewQueueTbody.appendChild(tr);
+            });
+        }
+
+
+        async function submitReviewCorrection(item, finalLabel, tableRow) {
+            const buttons = tableRow.querySelectorAll('.btn-action');
+            buttons.forEach(btn => btn.disabled = true);
+
+            try {
+                const res = await fetch('/api/submit-review', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        text: item.text,
+                        prediction: item.model_prediction,
+                        confidence: item.model_confidence,
+                        corrected_label: finalLabel,
+                        timestamp: item.timestamp
+                    })
+                });
+
+                if (!res.ok) throw new Error('Submission failed');
+
+                // Animate row removal
+                tableRow.style.transition = 'all 0.4s ease';
+                tableRow.style.opacity = '0';
+                tableRow.style.transform = 'translateX(50px)';
+
+                showToast('success', 'Review Submitted', `Labeled as ${finalLabel.toUpperCase()}`);
+
+                setTimeout(() => {
+                    tableRow.remove();
+                    if (reviewQueueTbody.children.length === 0) {
+                        reviewQueueTbody.innerHTML = `
+                            <tr class="table-placeholder">
+                                <td colspan="4" class="text-center">
+                                    <i class="fa-solid fa-clipboard-check table-placeholder-icon"></i>
+                                    <p>No items pending human review. Excellent job!</p>
+                                </td>
+                            </tr>
+                        `;
+                    }
+                    loadStats();
+                }, 400);
+
+            } catch (err) {
+                showToast('error', 'Failed', err.message);
+                buttons.forEach(btn => btn.disabled = false);
+            }
+        }
+
+
+        // ═══════════════════════════════════════════════
+        //  INITIALIZATION
+        // ═══════════════════════════════════════════════
+
+        async function init() {
+            const isUp = await checkBackendHealth();
+            if (isUp) {
+                loadStats();
+                showToast('success', 'Connected', 'API server is online and ready.');
+            } else {
+                showToast('error', 'Backend Offline', 'Start the server: py step8_api.py');
+            }
+        }
+
+        init();
+    });
+    </script>
+</body>
+</html>

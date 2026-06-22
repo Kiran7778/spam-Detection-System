@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/Users/WIN 10/Downloads/spam-example-pipeline-main/spam-example-pipeline-main/mlruns/933333562488028884/e85836e67f75409fa6ccb8ffe630324b/artifacts
+end_time: 1779250543750
+entry_point_name: ''
+experiment_id: '933333562488028884'
+lifecycle_stage: active
+run_id: e85836e67f75409fa6ccb8ffe630324b
+run_name: Baseline_SGD
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1779250498638
+status: 3
+tags: []
+user_id: WIN 10

@@ -1,0 +1,10 @@
+artifact_location: file:///C:/Users/WIN 10/Downloads/spam-example-pipeline-main/spam-example-pipeline-main/mlruns/933333562488028884/models/m-dfa36fc0aaa141cb8f5174dda4802e59/artifacts
+creation_timestamp: 1780293533306
+experiment_id: '933333562488028884'
+last_updated_timestamp: 1780293599192
+model_id: m-dfa36fc0aaa141cb8f5174dda4802e59
+model_type: null
+name: model
+source_run_id: 0162a0e7d66242b2a6e5915e34a7ca89
+status: 2
+status_message: null

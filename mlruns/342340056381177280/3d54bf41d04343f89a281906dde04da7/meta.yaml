@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/Users/WIN%2010/Downloads/spam-example-pipeline-main/spam-example-pipeline-main/mlruns/342340056381177280/3d54bf41d04343f89a281906dde04da7/artifacts
+end_time: 1778740829576
+entry_point_name: ''
+experiment_id: '342340056381177280'
+lifecycle_stage: active
+run_id: 3d54bf41d04343f89a281906dde04da7
+run_name: AL_vs_Random_Sim
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1778740813744
+status: 3
+tags: []
+user_id: WIN 10

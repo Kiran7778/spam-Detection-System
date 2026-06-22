@@ -1,0 +1,8 @@
+artifact_location: file:///C:/Users/WIN 10/Downloads/spam-example-pipeline-main/spam-example-pipeline-main/mlruns/933333562488028884
+creation_time: 1778736269912
+experiment_id: '933333562488028884'
+last_update_time: 1778736269912
+lifecycle_stage: active
+name: SMS_Spam_Moderation
+trace_location: null
+workspace: default

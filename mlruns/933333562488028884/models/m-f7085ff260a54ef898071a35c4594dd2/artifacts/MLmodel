@@ -1,0 +1,23 @@
+artifact_path: file:///C:/Users/WIN 10/Downloads/spam-example-pipeline-main/spam-example-pipeline-main/mlruns/933333562488028884/models/m-f7085ff260a54ef898071a35c4594dd2/artifacts
+flavors:
+  python_function:
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.sklearn
+    model_path: model.pkl
+    predict_fn: predict
+    python_version: 3.13.5
+  sklearn:
+    code: null
+    pickled_model: model.pkl
+    serialization_format: cloudpickle
+    sklearn_version: 1.8.0
+    skops_trusted_types: null
+mlflow_version: 3.12.0
+model_id: m-f7085ff260a54ef898071a35c4594dd2
+model_size_bytes: 80946
+model_uuid: m-f7085ff260a54ef898071a35c4594dd2
+prompts: null
+run_id: c7adb8ba94d8495495f99d6987824038
+utc_time_created: '2026-05-14 05:24:32.680832'
